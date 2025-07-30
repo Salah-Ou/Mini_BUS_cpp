@@ -32,21 +32,13 @@ class BUS {
             cin.ignore();
             getline(cin, new_book.source);
             cout << "\t\tEnter Destination : " ;
-            cin.ignore();
             getline(cin, new_book.destination); 
-            price :
             cout << "\t\tEnter Price : " ;
             cin >> new_book.price ;
-            if (new_book.price == 3.50 || new_book.price == 4.00){
-                Book.push_back(new_book) ;
-                cout << "\n\t\tSeat booked successfully\n" ;
-                cout << "\n\t\t" ;
-                system("pause");
-            }
-            else{
-                cout << "\n\t\t\033[1;31mPrice is not valid\n\033[1;32m" ;
-                goto price ;
-            }
+            Book.push_back(new_book) ;
+            cout << "\n\t\tSeat booked successfully\n" ;
+            cout << "\n\t    " ;
+            system("pause");
         }
 
         void view_reservs(){
@@ -66,7 +58,7 @@ class BUS {
                     cout << "\n\t\t-------------------------------------------------------------\n" ;
                 }
             }
-            cout << "\n\t\t" ;
+            cout << "\n\t\t\t" ;
             system("pause");
         }
 
@@ -111,7 +103,7 @@ class BUS {
             }
             else{
                 int seat_no ;
-                cout << "\t    Enter seat number to print ticket : " ;
+                cout << "\t\tEnter seat number to print ticket : " ;
                 cin >> seat_no ;
                 for(const auto& book : Book){
                     if(book.seat_no == seat_no){
