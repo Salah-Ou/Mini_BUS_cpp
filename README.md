@@ -44,6 +44,4 @@ The program features a clean console interface with :
 - Time display header.
 - Formatted output for reservations and tickets.
 
-![Gif example of devloping with Mitosis](http://127.0.0.1:5500/2025-10-13%2016.58.10.mp4)
-
 
