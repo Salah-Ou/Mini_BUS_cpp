@@ -43,5 +43,3 @@ The program features a clean console interface with :
 - Green colored text.
 - Time display header.
 - Formatted output for reservations and tickets.
-
-http://127.0.0.1:5500/2025-10-13%2016.58.10.mp4
