@@ -24,7 +24,7 @@ This is a simple console-based Mini Bus Booking System written in C++. The progr
 ## 🕹️ Data Structure
 The program uses a 
 ```bash 
-vector
+   vector
 ``` 
 to store reservation data. Each reservation contains : 
 - Passenger name.
