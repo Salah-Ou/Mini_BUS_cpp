@@ -43,3 +43,7 @@ The program features a clean console interface with :
 - Green colored text.
 - Time display header.
 - Formatted output for reservations and tickets.
+
+![Gif example of devloping with Mitosis](https://cdn.builder.io/api/v1/file/assets%2FYJIGb4i01jvw0SRdL5Bt%2F868af1e6d9fd4923b18ecd1d892f3a6e)
+
+
