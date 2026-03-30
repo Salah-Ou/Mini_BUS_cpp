@@ -6,21 +6,19 @@
 #include <fstream>      // For file operations (reading/writing files)
 
 #ifdef _WIN32
-    // Windows-specific includes :
-    #include <windows.h>  // Windows API - provides console handling functions Used for: COORD structure, SetConsoleCursorPosition()
-                        // Allows precise cursor positioning in Windows console
-    #include <thread>       // For multithreading support (though not heavily used)
-    #include <chrono>       // For time operations (milliseconds, etc.)
-    #include <time.h>       // Alternative time header (ctime is usually enough)
+    // Windows-specific includes
+    #include <windows.h>  // Windows API - provides console handling functions
+    #include <thread>     // For multithreading support
+    #include <chrono>     // For time operations
 #else
-    // Linux/Unix/Mac includes :
-    #include <unistd.h>     // POSIX API - provides usleep(), system calls Used for: sleep functions, file operations
-    #include <cstdlib>      // C standard library - provides system(), exit() Used for: system("clear"), exit() function
+    // Linux/Unix/Mac includes
+    #include <unistd.h>   // POSIX API
+    #include <cstdlib>    // C standard library
 #endif
 
 using namespace std;
 
-// Cursor Positioning :
+// Cursor Positioning
 void gotoxy(int x, int y) {
     #ifdef _WIN32
         COORD c;
@@ -33,8 +31,18 @@ void gotoxy(int x, int y) {
 }
 
 class BUS {
-    private:
-
+    private: 
+        struct Tickets {
+            string name;
+            int ID;
+            string source;
+            string destination;
+            float price;
+            float kilom;
+        };
+        
+        vector<Tickets> Ticket;
+        
         void clear_screen() {
             #ifdef _WIN32
                 system("cls");
@@ -70,17 +78,90 @@ class BUS {
             }
             return price;
         }
+        
+        // Fixed: Properly load reservations into the Ticket vector
+        void load_reservations() {
+            string filename = "reservations.txt";
+            ifstream file(filename);
+            
+            if (file.is_open()) {
+                string line;
+                Tickets temp_ticket;
+                
+                while (getline(file, line)) {
+                    if (line.find("Ticket ID") != string::npos) {
+                        size_t pos = line.find(":");
+                        if (pos != string::npos) {
+                            temp_ticket.ID = stoi(line.substr(pos + 1));
+                        }
+                    }
+                    else if (line.find("Passenger") != string::npos) {
+                        size_t pos = line.find(":");
+                        if (pos != string::npos) {
+                            temp_ticket.name = line.substr(pos + 1);
+                            // Trim whitespace
+                            size_t start = temp_ticket.name.find_first_not_of(" \t");
+                            if (start != string::npos) {
+                                temp_ticket.name = temp_ticket.name.substr(start);
+                            }
+                        }
+                    }
+                    else if (line.find("Source") != string::npos) {
+                        size_t pos = line.find(":");
+                        if (pos != string::npos) {
+                            temp_ticket.source = line.substr(pos + 1);
+                            size_t start = temp_ticket.source.find_first_not_of(" \t");
+                            if (start != string::npos) {
+                                temp_ticket.source = temp_ticket.source.substr(start);
+                            }
+                        }
+                    }
+                    else if (line.find("Destination") != string::npos) {
+                        size_t pos = line.find(":");
+                        if (pos != string::npos) {
+                            temp_ticket.destination = line.substr(pos + 1);
+                            size_t start = temp_ticket.destination.find_first_not_of(" \t");
+                            if (start != string::npos) {
+                                temp_ticket.destination = temp_ticket.destination.substr(start);
+                            }
+                        }
+                    }
+                    else if (line.find("Distance") != string::npos) {
+                        size_t pos = line.find(":");
+                        if (pos != string::npos) {
+                            string dist_str = line.substr(pos + 1);
+                            size_t km_pos = dist_str.find("km");
+                            if (km_pos != string::npos) {
+                                dist_str = dist_str.substr(0, km_pos);
+                            }
+                            temp_ticket.kilom = stof(dist_str);
+                        }
+                    }
+                    else if (line.find("Price") != string::npos) {
+                        size_t pos = line.find(":");
+                        if (pos != string::npos) {
+                            string price_str = line.substr(pos + 1);
+                            size_t dh_pos = price_str.find("DH");
+                            if (dh_pos != string::npos) {
+                                price_str = price_str.substr(0, dh_pos);
+                            }
+                            temp_ticket.price = stof(price_str);
+                        }
+                        // Add the complete ticket to the vector
+                        Ticket.push_back(temp_ticket);
+                        // Reset temp_ticket for next entry
+                        temp_ticket = Tickets();
+                    }
+                }
+                file.close();
+            }
+        }
 
     public:
-        struct Tickets {
-            string name;
-            int ID;
-            string source;
-            string destination;
-            float price ;
-            float kilom;
-        };
-        vector<Tickets> Ticket;
+        // Constructor
+        BUS() {
+            load_reservations(); // Load existing reservations from file on startup
+        }
 
         void set_reminder() {
             clear_screen();
@@ -93,31 +174,30 @@ class BUS {
         void Set_Ticket() {
             set_reminder();
             Tickets new_ticket;
-            int id ;
-            string filename = "reservations.txt";
-            ifstream file(filename);
+            
             gotoxy(36, 5);
             cout << "------------------------ Set Ticket ------------------------";
             gotoxy(40, 7);
             cout << "* Enter ID : ";
             cin >> new_ticket.ID;
-            if (file.is_open()){
-                // Read existing reservations from file
-                string line;
-                while (getline(file, line)){
-                    if (line.find("Ticket ID") != string::npos) {
-                        id = stoi(line.substr(line.find(":") + 1));
-                        if (id == new_ticket.ID) {
-                            gotoxy(55, 13);
-                            cout << "\033[1;31mThis ID already exists.\033[0m";
-                            gotoxy(53, 15);
-                            pause_screen();
-                            file.close();
-                            return;
-                        }
-                    }
+            
+            // Check if ID already exists in the vector
+            bool id_exists = false;
+            for (const auto& ticket : Ticket) {
+                if (ticket.ID == new_ticket.ID) {
+                    id_exists = true;
+                    break;
                 }
             }
+            
+            if (id_exists) {
+                gotoxy(55, 13);
+                cout << "\033[1;31mThis ID already exists.\033[0m";
+                gotoxy(53, 15);
+                pause_screen();
+                return;
+            }
+            
             gotoxy(40, 9);
             cout << "* Enter Name : ";
             cin >> new_ticket.name;
@@ -130,9 +210,9 @@ class BUS {
             getline(cin, new_ticket.destination);
             gotoxy(40, 15);
             cout << "* Enter the distance in kilometers between ";
-            gotoxy(40,16);
+            gotoxy(40, 16);
             cout << "your source point and destination : ";
-            cin >> new_ticket.kilom ;
+            cin >> new_ticket.kilom;
             new_ticket.price = calculate_price(new_ticket.kilom);
             gotoxy(54, 18);
             cout << "\033[1;33m Ticket Price: " << fixed << setprecision(2) << new_ticket.price << " DH\033[0m";
@@ -140,7 +220,7 @@ class BUS {
             gotoxy(36, 20);
             cout << "------------------------------------------------------------";
             gotoxy(49, 22);
-            cout << "\033[1;32mThe ticket was successfully received.\033[1;0m";
+            cout << "\033[1;32mThe ticket was successfully received.\033[0m";
             gotoxy(54, 24);
             pause_screen();
         }
@@ -165,42 +245,47 @@ class BUS {
 
         void edit_a_reserv() {
             set_reminder();
-            int choice ;
-            int found = false ;
+            int choice;
+            bool found = false;
+            
             if (Ticket.empty()) {
-                gotoxy(50,20);
+                gotoxy(50, 10);
                 cout << "\033[1;31mNo reservations available\033[0m";
             } else {
                 int ID;
-                gotoxy(40,5);
-                cout << "Enter TIcket ID to edit : ";
+                gotoxy(40, 5);
+                cout << "Enter Ticket ID to edit : ";
                 cin >> ID;
                 clear_screen();
                 set_reminder();
+                
                 for (auto& ticket : Ticket) {
                     if (ticket.ID == ID) {
-                        found = true ;
-                        gotoxy(50,7);
-                        cout << "what do you want to edit : " ;
-                        gotoxy(40,9);
+                        found = true;
+                        gotoxy(50, 7);
+                        cout << "What do you want to edit :";
+                        gotoxy(40, 9);
                         cout << "-----------------------------------------------";
-                        gotoxy(44,11);
-                        cout << "1. Name" ;
-                        gotoxy(44,13);
-                        cout << "2. Source - Destination" ;
-                        gotoxy(40,15);
+                        gotoxy(44, 11);
+                        cout << "1. Name";
+                        gotoxy(44, 13);
+                        cout << "2. Source - Destination";
+                        gotoxy(40, 15);
                         cout << "-----------------------------------------------";
-                        gotoxy(52,17);
-                        cout << "Your choice : " ;
-                        cin >> choice ;
-                        switch(choice){
-                            case 1 :  gotoxy(48,19);
+                        gotoxy(52, 17);
+                        cout << "Your choice : ";
+                        cin >> choice;
+                        
+                        switch(choice) {
+                            case 1:
+                                gotoxy(48, 19);
                                 cout << "* Enter your new Name : ";
                                 cin >> ticket.name;
-                                gotoxy(44,21);
-                                cout << "\033[1;32mThe ticket has been successfully modified.\033[1;0m";
-                                break ;
-                            case 2 : gotoxy(40,19);
+                                gotoxy(44, 21);
+                                cout << "\033[1;32mThe ticket has been successfully modified.\033[0m";
+                                break;
+                            case 2:
+                                gotoxy(40, 19);
                                 cout << "* Enter Source : ";
                                 cin.ignore();
                                 getline(cin, ticket.source);
@@ -209,27 +294,30 @@ class BUS {
                                 getline(cin, ticket.destination);
                                 gotoxy(40, 23);
                                 cout << "* Enter the distance in kilometers between ";
-                                gotoxy(40,24);
+                                gotoxy(40, 24);
                                 cout << "your source point and destination : ";
-                                cin >> ticket.kilom ;
+                                cin >> ticket.kilom;
                                 ticket.price = calculate_price(ticket.kilom);
                                 gotoxy(51, 26);
                                 cout << "\033[1;33m Ticket Price: " << fixed << setprecision(2) << ticket.price << " DH\033[0m";
-                                gotoxy(45,28);
-                                cout << "\033[1;32mThe ticket has been successfully modified..\033[1;0m";
-                                break ;
-                            default : gotoxy(55,25);
-                                cout << "\033[1;31mInvalid Choice!!!"; 
+                                gotoxy(45, 28);
+                                cout << "\033[1;32mThe ticket has been successfully modified.\033[0m";
+                                break;
+                            default:
+                                gotoxy(55, 25);
+                                cout << "\033[1;31mInvalid Choice!!!";
                                 break;
                         }
+                        break;
                     }
                 }
+                
                 if (!found) {
-                    gotoxy(48,22);
+                    gotoxy(48, 10);
                     cout << "\033[1;31mNo ticket found with that ID.\033[0m";
                 }
             }
-            gotoxy(50,30);
+            gotoxy(50, 30);
             pause_screen();
         }
 
@@ -244,8 +332,7 @@ class BUS {
             }
 
             string filename = "reservations.txt";
-            ofstream file("reservations.txt");
-            
+            ofstream file(filename);
             
             if (!file.is_open()) {
                 gotoxy(40, 10);
@@ -297,71 +384,56 @@ class BUS {
         void print_a_ticket() {
             set_reminder();
             if (Ticket.empty()) {
-                gotoxy(45,18);
-                cout << "\033[1;31mNo reservations available\033[1;0m";
+                gotoxy(45, 10);
+                cout << "\033[1;31mNo reservations available\033[0m";
             } else {
                 int ID;
-                gotoxy(45,5);
-                cout << "\t\tEnter seat number to print ticket : ";
+                gotoxy(45, 5);
+                cout << "Enter seat number to print ticket : ";
                 cin >> ID;
                 clear_screen();
                 set_reminder();
+                
+                bool found = false;
                 for (const auto& ticket : Ticket) {
                     if (ticket.ID == ID) {
-                        gotoxy(53,5);
+                        found = true;
+                        gotoxy(53, 5);
                         cout << "\033[1;33m BUS Receipt \033[0m";
-                        gotoxy(35,7);
+                        gotoxy(35, 7);
                         cout << "--------------------------------------------------";
-                        gotoxy(39,9);
+                        gotoxy(39, 9);
                         cout << "\033[1;34mTicket for seat No.   : \033[1;30m" << ticket.ID;
-                        gotoxy(39,11);
+                        gotoxy(39, 11);
                         cout << "\033[1;34mPassenger Name        : \033[1;30m" << ticket.name;
-                        gotoxy(39,13);
+                        gotoxy(39, 13);
                         cout << "\033[1;34mPassenger Source      : \033[1;30m" << ticket.source;
-                        gotoxy(39,15);
+                        gotoxy(39, 15);
                         cout << "\033[1;34mPassenger Destination : \033[1;30m" << ticket.destination;
-                        gotoxy(39,17);
-                        cout << "\033[1;34mPassenger Price       : \033[1;30m" << fixed << setprecision(2) << ticket.price << " DH\033[1;0m";
-                        gotoxy(35,19);
+                        gotoxy(39, 17);
+                        cout << "\033[1;34mPassenger Price       : \033[1;30m" << fixed << setprecision(2) << ticket.price << " DH\033[0m";
+                        gotoxy(35, 19);
                         cout << "--------------------------------------------------";
-                        gotoxy(44,21);
-                        cout << "\033[1;32mThank you for traveling with us.";
+                        gotoxy(44, 21);
+                        cout << "\033[1;32mThank you for traveling with us.\033[0m";
+                        break;
                     }
                 }
+                
+                if (!found) {
+                    gotoxy(45, 10);
+                    cout << "\033[1;31mTicket not found with ID: " << ID << "\033[0m";
+                }
             }
-            gotoxy(47,23);
+            gotoxy(47, 23);
             pause_screen();
         }
-
-};
+};  // <-- Fixed: Added semicolon here
 
 int main() {
     int choice;
     BUS b;
-    string filename = "reservations.txt";
-    ifstream file(filename);
-    // Load existing reservations from file on startup
-    if (file.is_open()) {
-        string line;
-        while (getline(file, line)) {
-            if (line.find("Ticket ID") != string::npos) {
-                BUS::Tickets ticket;
-                ticket.ID = stoi(line.substr(line.find(":") + 1));
-                getline(file, line);
-                ticket.name = line.substr(line.find(":") + 1);
-                getline(file, line);
-                ticket.source = line.substr(line.find(":") + 1);
-                getline(file, line);
-                ticket.destination = line.substr(line.find(":") + 1);
-                getline(file, line);
-                ticket.kilom = stof(line.substr(line.find(":") + 1));
-                getline(file, line);
-                ticket.price = stof(line.substr(line.find(":") + 1));
-                b.Ticket.push_back(ticket);
-            }
-        }
-        file.close();
-    }
+    
     while (true) {
         b.set_reminder();
         gotoxy(42, 5);
@@ -385,12 +457,23 @@ int main() {
         gotoxy(45, 23);
         cout << "Enter your choice : ";
         cin >> choice;
+        
         switch (choice) {
-            case 1: b.Set_Ticket(); break;
-            case 2: b.view_reservs(); break;
-            case 3: b.edit_a_reserv(); break;
-            case 4: b.print_a_ticket(); break;
-            case 5: b.save_to_file(); break;
+            case 1: 
+                b.Set_Ticket(); 
+                break;
+            case 2: 
+                b.view_reservs(); 
+                break;
+            case 3: 
+                b.edit_a_reserv(); 
+                break;
+            case 4: 
+                b.print_a_ticket(); 
+                break;
+            case 5: 
+                b.save_to_file(); 
+                break;
             case 6:
                 gotoxy(52, 25);
                 cout << "\033[1;30mExit Program...\n\n";
@@ -399,7 +482,15 @@ int main() {
             default:
                 gotoxy(50, 25);
                 cout << "\033[1;31mInvalid Choice!!!";
+                // Add a small pause to see the error message
+                #ifdef _WIN32
+                    Sleep(1500);
+                #else
+                    sleep(1);
+                #endif
                 break;
         }
     }
+    
+    return 0;
 }
