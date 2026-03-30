@@ -93,9 +93,9 @@ g++ -o bus_system bus_system.cpp -std=c++11
 
 > ### Choose what to edit :
 - #### 1: Change passenger name.
-- #### 2: Change route (source/destination/distance).
-- #### Enter new information.
-- #### Price automatically recalculates if distance changes.
+- #### 2: Change route (source/destination/distance) :
+- Enter new information.
+- Price automatically recalculates if distance changes.
 
 > ### Printing a Ticket :
 - #### Select option 4 from main menu.
